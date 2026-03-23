@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="14"
+        android:translateY="14">
+        <!-- Glow effect around the lightbulb -->
+        <path
+            android:pathData="M40,40m-35,0a35,35 0,1 1,70 0a35,35 0,1 1,-70 0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:centerX="40"
+                    android:centerY="40"
+                    android:gradientRadius="35"
+                    android:type="radial">
+                    <item android:offset="0" android:color="#40135BEC"/>
+                    <item android:offset="1" android:color="#00135BEC"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- The Lightbulb icon -->
+        <path
+            android:fillColor="#135BEC"
+            android:pathData="M40,15c-10.77,0 -19.5,8.73 -19.5,19.5c0,6.65 3.11,12.58 7.9,16.33l2.1,1.57v6.6c0,1.66 1.34,3 3,3h13c1.66,0 3,-1.34 3,-3v-6.6l2.1,-1.57c4.79,-3.75 7.9,-9.68 7.9,-16.33c0,-10.77 -8.73,-19.5 -19.5,-19.5zM44.5,53h-9v-3h9v3zM44.5,48h-9v-3h9v3zM48.92,47.1l-1.42,1.06v4.84h-13v-4.84l-1.42,-1.06c-4.14,-3.1 -6.58,-7.93 -6.58,-13.1c0,-9.1 7.4,-16.5 16.5,-16.5s16.5,7.4 16.5,16.5c0,5.17 -2.44,10 -6.58,13.1z" />
+    </group>
+</vector>
