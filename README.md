@@ -1,4 +1,12 @@
 No se espanten por ver un monton de archivos, android studio los genera por si solos, asi que dejo los mas importantes que use para la app y no se pierdan con todo lo que lleva 
+
+Para navegar por el proyecto, estas son las carpetas clave que debes conocer:
+
+- ui/screens: Contiene todas las pantallas de la interfaz de usuario (Login, Dashboard, Sensores, etc.).
+- backend: Aqui se encuentra la logica de comunicacion con el hardware (Bluetooth, Wi-Fi y Voz).
+- data: Contiene los modelos de datos y la gestion del cache persistente.
+- res: Carpeta de recursos donde se definen los colores, temas, iconos y textos de la app.
+- gradle: Configuracion del proyecto y gestion de versiones de las librerias.
 Archivos Importantes
 
 MainActivity.kt
