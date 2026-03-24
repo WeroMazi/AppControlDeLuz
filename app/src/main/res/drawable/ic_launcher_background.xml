@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Gradiente de fondo oscuro a púrpura -->
+    <path
+        android:fillColor="#1A0033"
+        android:pathData="M0,0h108v54h-108z" />
+    <path
+        android:fillColor="#2D005C"
+        android:pathData="M0,54h108v54h-108z" />
+    <!-- Círculos decorativos de luz usando paths -->
+    <path
+        android:fillColor="#FF6200EE"
+        android:fillAlpha="0.3"
+        android:pathData="M27,12a15,15 0,1 1,30 0a15,15 0,1 1,-30 0z" />
+    <path
+        android:fillColor="#FF03DAC5"
+        android:fillAlpha="0.25"
+        android:pathData="M81,15a12,12 0,1 1,24 0a12,12 0,1 1,-24 0z" />
+    <path
+        android:fillColor="#FF6200EE"
+        android:fillAlpha="0.2"
+        android:pathData="M54,67a14,14 0,1 1,28 0a14,14 0,1 1,-28 0z" />
+</vector>
