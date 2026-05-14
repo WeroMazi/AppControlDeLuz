@@ -20,21 +20,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.appcontroldeluz.data.model.LinkedLightDevice
+import com.example.appcontroldeluz.data.model.SensorStatus
+import com.example.appcontroldeluz.ui.theme.LocalAppThemeColors
 import com.example.appcontroldeluz.ui.theme.PrimaryBlue
-import com.example.appcontroldeluz.ui.theme.BackgroundDark
-import com.example.appcontroldeluz.ui.theme.SurfaceDark
-import com.example.appcontroldeluz.ui.theme.TextGray
 
 @Composable
-fun SensorScreen(onBackClick: () -> Unit) {
-    var sensorEnabled by remember { mutableStateOf(true) }
-    var sliderPosition by remember { mutableFloatStateOf(0.5f) }
+fun SensorScreen(
+    onBackClick: () -> Unit,
+    sensorStatus: SensorStatus,
+    onSensorEnabledChange: (Boolean) -> Unit,
+    onRemoveLinkedLight: (String) -> Unit
+) {
+    val colors = LocalAppThemeColors.current
     val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(colors.background)
             .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(48.dp))
@@ -47,13 +51,13 @@ fun SensorScreen(onBackClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.onBackground)
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Sensor de Movimiento", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text("Sensor de Movimiento", color = colors.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { /* More options */ }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = colors.onSurfaceVariant)
             }
         }
 
@@ -69,8 +73,8 @@ fun SensorScreen(onBackClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                     .padding(24.dp)
             ) {
                 Column {
@@ -80,7 +84,7 @@ fun SensorScreen(onBackClick: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("ESTADO ACTUAL", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text("ESTADO ACTUAL", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("Movimiento\ndetectado", color = PrimaryBlue, fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
                         }
@@ -96,9 +100,9 @@ fun SensorScreen(onBackClick: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color.Green))
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PrimaryBlue))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Hace 2 minutos • Pasillo Principal", color = TextGray, fontSize = 12.sp)
+                        Text(sensorStatus.lastDetectionLabel, color = colors.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
             }
@@ -110,8 +114,8 @@ fun SensorScreen(onBackClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
                 Row(
@@ -124,76 +128,30 @@ fun SensorScreen(onBackClick: () -> Unit) {
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(PrimaryBlue.copy(alpha = 0.1f)),
+                                .background(colors.subtleContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = PrimaryBlue)
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Activar sensor", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("Automatización habilitada", color = TextGray, fontSize = 14.sp)
+                            Text("Activar sensor", color = colors.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Automatización habilitada", color = colors.onSurfaceVariant, fontSize = 14.sp)
                         }
                     }
                     Switch(
-                        checked = sensorEnabled,
-                        onCheckedChange = { sensorEnabled = it },
+                        checked = sensorStatus.enabled,
+                        onCheckedChange = onSensorEnabledChange,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = PrimaryBlue
+                            checkedTrackColor = PrimaryBlue,
+                            uncheckedTrackColor = colors.surfaceVariant
                         )
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Apagar después de
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Apagar después de", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(PrimaryBlue.copy(alpha = 0.1f))
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
-                        ) {
-                            Text("5 min", color = PrimaryBlue, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Slider(
-                        value = sliderPosition,
-                        onValueChange = { sliderPosition = it },
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = PrimaryBlue,
-                            inactiveTrackColor = Color.DarkGray
-                        )
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("1 min", color = TextGray, fontSize = 12.sp)
-                        Text("5 min", color = TextGray, fontSize = 12.sp)
-                        Text("10 min", color = TextGray, fontSize = 12.sp)
-                        Text("30 min", color = TextGray, fontSize = 12.sp)
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -203,7 +161,7 @@ fun SensorScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Luces vinculadas", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Luces vinculadas", color = colors.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Row(modifier = Modifier.clickable { }, verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.AddCircle, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -212,25 +170,39 @@ fun SensorScreen(onBackClick: () -> Unit) {
             }
             
             Spacer(modifier = Modifier.height(16.dp))
-            
-            LinkedLightItem("Techo Pasillo 1", "Intensidad: 80%")
-            Spacer(modifier = Modifier.height(12.dp))
-            LinkedLightItem("Lámpara Decorativa", "Intensidad: 40%")
-            Spacer(modifier = Modifier.height(12.dp))
-            LinkedLightItem("Luz de Cortesía", "Intensidad: 20%")
+
+            if (sensorStatus.linkedLights.isEmpty()) {
+                Text(
+                    "No hay luces vinculadas.",
+                    color = colors.onSurfaceVariant,
+                    fontSize = 14.sp
+                )
+            } else {
+                sensorStatus.linkedLights.forEachIndexed { index, linkedLight ->
+                    LinkedLightItem(
+                        linkedLight = linkedLight,
+                        onDelete = { onRemoveLinkedLight(linkedLight.id) }
+                    )
+                    if (index < sensorStatus.linkedLights.lastIndex) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-fun LinkedLightItem(title: String, subtitle: String) {
+fun LinkedLightItem(linkedLight: LinkedLightDevice, onDelete: () -> Unit) {
+    val colors = LocalAppThemeColors.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark)
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -241,18 +213,18 @@ fun LinkedLightItem(title: String, subtitle: String) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFBBF24).copy(alpha = 0.1f)),
+                    .background(colors.subtleContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFFFBBF24))
+                Icon(Icons.Default.Lightbulb, contentDescription = null, tint = PrimaryBlue)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(subtitle, color = TextGray, fontSize = 12.sp)
+                Text(linkedLight.name, color = colors.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("Estado: ${linkedLight.status}", color = colors.onSurfaceVariant, fontSize = 12.sp)
             }
-            IconButton(onClick = { /* Delete */ }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = TextGray)
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = colors.onSurfaceVariant)
             }
         }
     }

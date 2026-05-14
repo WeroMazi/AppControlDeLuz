@@ -19,3 +19,16 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Retrofit interfaces and HTTP annotations.
+-keepattributes Signature,RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
+-keep class retrofit2.** { *; }
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+	@retrofit2.http.* <methods>;
+}
+
+# Keep Gson model fields used by reflection.
+-keep class com.example.appcontroldeluz.data.model.** { *; }
+
+# Keep Kotlin metadata for better interoperability in reflection-based libs.
+-keep class kotlin.Metadata { *; }

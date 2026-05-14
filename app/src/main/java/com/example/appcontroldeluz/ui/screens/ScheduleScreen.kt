@@ -20,19 +20,18 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.appcontroldeluz.ui.theme.LocalAppThemeColors
 import com.example.appcontroldeluz.ui.theme.PrimaryBlue
-import com.example.appcontroldeluz.ui.theme.BackgroundDark
-import com.example.appcontroldeluz.ui.theme.SurfaceDark
-import com.example.appcontroldeluz.ui.theme.TextGray
 
 @Composable
 fun ScheduleScreen(onAddClick: () -> Unit = {}) {
+    val colors = LocalAppThemeColors.current
     val scrollState = rememberScrollState()
     
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(colors.background)
             .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(48.dp))
@@ -47,10 +46,10 @@ fun ScheduleScreen(onAddClick: () -> Unit = {}) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { /* Navegación manejada por el menú inferior */ }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF2D7CF3))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryBlue)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Programación", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text("Programación", color = colors.onBackground, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
             
             Box(
@@ -77,8 +76,8 @@ fun ScheduleScreen(onAddClick: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(PrimaryBlue.copy(alpha = 0.1f))
-                    .border(1.dp, PrimaryBlue.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                        .background(colors.subtleContainer)
+                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                     .padding(24.dp)
             ) {
                 Row(
@@ -87,31 +86,31 @@ fun ScheduleScreen(onAddClick: () -> Unit = {}) {
                     verticalAlignment = Alignment.Top
                 ) {
                     Column {
-                        Text("PRÓXIMA RUTINA", color = Color(0xFF2D7CF3), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("PRÓXIMA RUTINA", color = PrimaryBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text("23:00", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+                            Text("23:00", color = colors.onBackground, fontSize = 36.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("PM", color = Color.White.copy(alpha = 0.7f), fontSize = 18.sp, modifier = Modifier.padding(bottom = 6.dp))
+                            Text("PM", color = colors.onSurfaceVariant, fontSize = 18.sp, modifier = Modifier.padding(bottom = 6.dp))
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Modo Noche: Apagar todo", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                        Text("Modo Noche: Apagar todo", color = colors.onSurfaceVariant, fontSize = 14.sp)
                     }
-                    Icon(Icons.Default.Nightlight, contentDescription = null, tint = Color(0xFF2D7CF3), modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.Nightlight, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(36.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Tus Rutinas foto 3
-            Text("TUS RUTINAS", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text("TUS RUTINAS", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            RoutineItem("Despertar", "08:00 AM • Luces dormitorio", Icons.Default.WbSunny, Color(0xFFD97706), Color(0xFFFEF3C7).copy(alpha = 0.1f), true)
+            RoutineItem("Despertar", "08:00 AM • Luces dormitorio", Icons.Default.WbSunny, Color(0xFFD97706), colors.subtleContainer, true)
             Spacer(modifier = Modifier.height(16.dp))
-            RoutineItem("Noche", "11:00 PM • Apagar todo", Icons.Default.Nightlight, Color(0xFF4F46E5), Color(0xFFE0E7FF).copy(alpha = 0.1f), true)
+            RoutineItem("Noche", "11:00 PM • Apagar todo", Icons.Default.Nightlight, Color(0xFF4F46E5), colors.subtleContainer, true)
             Spacer(modifier = Modifier.height(16.dp))
-            RoutineItem("Lectura", "04:00 PM • Luces cálidas", Icons.Default.Coffee, TextGray, Color.White.copy(alpha = 0.05f), false)
+            RoutineItem("Lectura", "04:00 PM • Luces cálidas", Icons.Default.Coffee, colors.onSurfaceVariant, colors.subtleContainer, false)
             
             // Espacio extra para asegurar que el scroll se note
             Spacer(modifier = Modifier.height(32.dp))
@@ -121,6 +120,7 @@ fun ScheduleScreen(onAddClick: () -> Unit = {}) {
 
 @Composable
 fun RoutineItem(title: String, subtitle: String, icon: ImageVector, iconColor: Color, iconBgColor: Color, isActive: Boolean) {
+    val colors = LocalAppThemeColors.current
     var isChecked by remember { mutableStateOf(isActive) }
     
     val alpha = if (isChecked) 1f else 0.6f
@@ -129,8 +129,8 @@ fun RoutineItem(title: String, subtitle: String, icon: ImageVector, iconColor: C
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark.copy(alpha = alpha))
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+            .background(colors.surface.copy(alpha = alpha))
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
             .padding(20.dp)
     ) {
         Row(
@@ -150,8 +150,8 @@ fun RoutineItem(title: String, subtitle: String, icon: ImageVector, iconColor: C
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text(title, color = Color.White.copy(alpha = alpha), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text(subtitle, color = TextGray.copy(alpha = alpha), fontSize = 14.sp)
+                    Text(title, color = colors.onBackground.copy(alpha = alpha), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(subtitle, color = colors.onSurfaceVariant.copy(alpha = alpha), fontSize = 14.sp)
                 }
             }
             Switch(
@@ -161,7 +161,7 @@ fun RoutineItem(title: String, subtitle: String, icon: ImageVector, iconColor: C
                     checkedThumbColor = Color.White,
                     checkedTrackColor = PrimaryBlue,
                     uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color.DarkGray
+                    uncheckedTrackColor = colors.surfaceVariant
                 )
             )
         }

@@ -1,0 +1,38 @@
+package com.example.appcontroldeluz.data.remote
+
+import com.example.appcontroldeluz.data.model.HealthResponse
+import com.example.appcontroldeluz.data.model.LightControlRequest
+import com.example.appcontroldeluz.data.model.LightControlResponse
+import com.example.appcontroldeluz.data.model.LightsResponse
+import com.example.appcontroldeluz.data.model.VoiceCommandResponse
+import okhttp3.MultipartBody
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.Part
+
+interface HomeAutomationApiService {
+    @GET("api/health")
+    suspend fun getHealth(): HealthResponse
+
+    @GET("api/lights")
+    suspend fun getLights(): LightsResponse
+
+    @POST("api/lights/control")
+    suspend fun controlLight(@Body request: LightControlRequest): LightControlResponse
+
+    @Multipart
+    @POST("api/voice/command")
+    suspend fun processVoiceCommand(@Part file: MultipartBody.Part): VoiceCommandResponse
+
+    // Sensor endpoints (Azure-backed). These are optional and have local mock fallback.
+    @GET("api/sensors/status")
+    suspend fun getSensorStatus(): com.example.appcontroldeluz.data.model.SensorStatus
+
+    @POST("api/sensors/enable")
+    suspend fun setSensorEnabled(@Body payload: Map<String, Boolean>): com.example.appcontroldeluz.data.model.SensorStatus
+
+    @POST("api/sensors/unlink")
+    suspend fun unlinkLight(@Body payload: Map<String, String>): com.example.appcontroldeluz.data.model.SensorStatus
+}

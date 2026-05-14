@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">AppControldeluz</string>
+    <string name="app_name">LumaControl</string>
+    <string name="on">Encendida</string>
+    <string name="off">Todo apagado</string>
+    <string name="turn_on">Encender</string>
+    <string name="turn_off">Apagar</string>
+    <string name="room_icon">Icono de %1$s</string>
 </resources>

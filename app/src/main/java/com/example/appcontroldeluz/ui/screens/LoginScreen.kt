@@ -3,55 +3,103 @@ package com.example.appcontroldeluz.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.appcontroldeluz.AppControldeluzApplication
-import com.example.appcontroldeluz.data.CachedUser
+import com.example.appcontroldeluz.ui.theme.LocalAppThemeColors
 import com.example.appcontroldeluz.ui.theme.PrimaryBlue
-import com.example.appcontroldeluz.ui.theme.BackgroundDark
-import com.example.appcontroldeluz.ui.theme.TextGray
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
-    val context = LocalContext.current
-    val cacheManager = AppControldeluzApplication.cacheManager
-    val scope = rememberCoroutineScope()
-    
+    val colors = LocalAppThemeColors.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
-    var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    
-    // Verificar si hay sesión en caché válida
-    LaunchedEffect(Unit) {
-        val autoLoginEnabled = cacheManager.getAutoLoginEnabledFlow().first()
-        if (autoLoginEnabled) {
-            val isCacheValid = cacheManager.isLoginCacheValid().first()
-            if (isCacheValid) {
-                onLoginSuccess()
-            }
+
+    fun isValidEmail(email: String): Boolean {
+        return email.contains("@") && email.contains(".")
+    }
+
+    fun handleLogin() {
+        // Clear previous error
+        errorMessage = ""
+
+        // Validate inputs
+        if (email.isBlank()) {
+            errorMessage = "Por favor ingresa tu correo electrónico"
+            return
+        }
+
+        if (!isValidEmail(email)) {
+            errorMessage = "Por favor ingresa un correo válido"
+            return
+        }
+
+        if (password.isBlank()) {
+            errorMessage = "Por favor ingresa tu contraseña"
+            return
+        }
+
+        if (password.length < 4) {
+            errorMessage = "La contraseña debe tener al menos 4 caracteres"
+            return
+        }
+
+        // Credentials are valid - simulate server validation
+        isLoading = true
+    }
+
+    // Launch effect to handle successful login after validation
+    LaunchedEffect(isLoading) {
+        if (isLoading && errorMessage.isEmpty()) {
+            delay(500)
+            isLoading = false
+            onLoginSuccess()
         }
     }
 
@@ -60,10 +108,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1A2234),
-                        BackgroundDark
-                    )
+                    colors = listOf(colors.gradientStart, colors.background)
                 )
             )
     ) {
@@ -71,8 +116,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             modifier = Modifier
                 .size(500.dp)
                 .align(Alignment.TopCenter)
-                .offset(y = (-200).dp)
-                .background(PrimaryBlue.copy(alpha = 0.2f), shape = CircleShape)
+                .padding(top = 24.dp)
+                .background(PrimaryBlue.copy(alpha = 0.18f), shape = CircleShape)
                 .blur(100.dp)
         )
 
@@ -88,23 +133,15 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp)),
+                    .background(colors.subtleContainer)
+                    .border(1.dp, colors.border, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Lightbulb,
+                    imageVector = Icons.Filled.AlternateEmail,
                     contentDescription = "Logo",
                     tint = PrimaryBlue,
                     modifier = Modifier.size(50.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-4).dp, y = 4.dp)
-                        .background(PrimaryBlue, CircleShape)
-                        .border(2.dp, BackgroundDark, CircleShape)
                 )
             }
 
@@ -112,53 +149,25 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
             Text(
                 text = "LumaControl",
-                color = Color.White,
+                color = colors.onBackground,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "Bienvenido de nuevo, ilumina tu mundo.",
-                color = TextGray,
+                color = colors.onSurfaceVariant,
                 fontSize = 16.sp
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
-
-            if (showError) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFFEBEE)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            tint = Color(0xFFC62828),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            errorMessage,
-                            color = Color(0xFFC62828),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(40.dp))
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Correo Electrónico",
-                    color = Color.White,
+                    color = colors.onBackground,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -166,19 +175,18 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("nombre@ejemplo.com", color = Color.Gray) },
+                    placeholder = { Text("nombre@ejemplo.com", color = colors.onSurfaceVariant) },
                     leadingIcon = {
-                        Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = Color.Gray)
+                        Icon(Icons.Filled.AlternateEmail, contentDescription = null, tint = colors.onSurfaceVariant)
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        unfocusedBorderColor = colors.inputBorder,
+                        focusedContainerColor = colors.inputContainer,
+                        unfocusedContainerColor = colors.inputContainer,
+                        focusedTextColor = colors.onBackground,
+                        unfocusedTextColor = colors.onBackground
                     ),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
@@ -188,7 +196,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Text(
                     text = "Contraseña",
-                    color = Color.White,
+                    color = colors.onBackground,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -196,151 +204,117 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("••••••••", color = Color.Gray) },
+                    placeholder = { Text("••••••••", color = colors.onSurfaceVariant) },
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray)
+                        Icon(Icons.Filled.Lock, contentDescription = null, tint = colors.onSurfaceVariant)
                     },
                     trailingIcon = {
-                        IconButton(
-                            onClick = { passwordVisible = !passwordVisible },
-                            enabled = !isLoading
-                        ) {
-                            val icon = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                            Icon(icon, contentDescription = null, tint = Color.Gray)
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            Icon(icon, contentDescription = null, tint = colors.onSurfaceVariant)
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        unfocusedBorderColor = colors.inputBorder,
+                        focusedContainerColor = colors.inputContainer,
+                        unfocusedContainerColor = colors.inputContainer,
+                        focusedTextColor = colors.onBackground,
+                        unfocusedTextColor = colors.onBackground
                     ),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Prueba: demo@luma.com / 123456",
-                    color = TextGray,
-                    fontSize = 12.sp
+                    text = "¿Olvidaste tu contraseña?",
+                    color = PrimaryBlue,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clickable { }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
+                // Error message display
+                if (errorMessage.isNotEmpty()) {
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .clickable(enabled = !isLoading) { rememberMe = !rememberMe },
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxWidth()
+                            .background(Color(0xFFFFEBEE), shape = RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFFEF5350), shape = RoundedCornerShape(8.dp))
+                            .padding(12.dp)
                     ) {
-                        Checkbox(
-                            checked = rememberMe,
-                            onCheckedChange = { rememberMe = it },
-                            enabled = !isLoading,
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = PrimaryBlue,
-                                uncheckedColor = Color.White.copy(alpha = 0.3f),
-                                checkmarkColor = Color.White
-                            )
-                        )
                         Text(
-                            "Recuérdame",
-                            color = TextGray,
-                            fontSize = 14.sp
+                            text = errorMessage,
+                            color = Color(0xFFC62828),
+                            fontSize = 13.sp
                         )
                     }
-                    Text(
-                        text = "¿Olvidaste tu contraseña?",
-                        color = PrimaryBlue,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable(enabled = !isLoading) { /* Handle forgot password */ }
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
-                    onClick = {
-                        if (email.isNotEmpty() && password.length >= 6) {
-                            isLoading = true
-                            showError = false
-                            
-                            scope.launch {
-                                try {
-                                    val isValid = validateCredentials(email, password)
-                                    
-                                    if (isValid) {
-                                        val user = CachedUser(
-                                            email = email,
-                                            username = email.substringBefore("@"),
-                                            isVerified = true
-                                        )
-                                        cacheManager.cacheUser(user)
-                                        
-                                        if (rememberMe) {
-                                            cacheManager.setAutoLoginEnabled(true)
-                                        }
-                                        
-                                        isLoading = false
-                                        onLoginSuccess()
-                                    } else {
-                                        errorMessage = "Usuario o contraseña incorrectos"
-                                        showError = true
-                                        isLoading = false
-                                    }
-                                } catch (e: Exception) {
-                                    errorMessage = "Error: ${e.message}"
-                                    showError = true
-                                    isLoading = false
-                                }
-                            }
-                        } else {
-                            errorMessage = if (email.isEmpty()) "Ingresa un correo" else "La contraseña debe tener al menos 6 caracteres"
-                            showError = true
-                        }
-                    },
-                    enabled = !isLoading,
+                    onClick = { handleLogin() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
+                    enabled = !isLoading
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            color = Color.White,
+                        androidx.compose.material3.CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
+                            color = Color.White,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Iniciar Sesión", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Iniciar Sesión", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = colors.border)
+                    Text(
+                        " O continuar con ",
+                        color = colors.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = colors.border)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, colors.border),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Filled.Email, contentDescription = null, modifier = Modifier.size(20.dp), tint = colors.onBackground)
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Continuar con Google", fontSize = 16.sp, color = colors.onBackground)
                 }
             }
         }
     }
-}
-
-private fun validateCredentials(email: String, password: String): Boolean {
-    val normalizedEmail = email.trim().lowercase()
-    val normalizedPassword = password.trim()
-
-    val testLogin = normalizedEmail == "demo@luma.com" && normalizedPassword == "123456"
-    val basicValidation = normalizedEmail.contains("@") && normalizedPassword.length >= 6
-
-    return testLogin || basicValidation
 }

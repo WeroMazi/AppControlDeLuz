@@ -21,20 +21,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.appcontroldeluz.ui.theme.LocalAppThemeColors
 import com.example.appcontroldeluz.ui.theme.PrimaryBlue
-import com.example.appcontroldeluz.ui.theme.BackgroundDark
-import com.example.appcontroldeluz.ui.theme.SurfaceDark
-import com.example.appcontroldeluz.ui.theme.TextGray
 
 @Composable
-fun VoiceSettingsScreen(onBackClick: () -> Unit) {
+fun VoiceSettingsScreen(
+    onBackClick: () -> Unit,
+    isDarkTheme: Boolean,
+    onThemeChange: (Boolean) -> Unit
+) {
+    val colors = LocalAppThemeColors.current
     var wakeWordEnabled by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(colors.background)
             .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(48.dp))
@@ -47,11 +50,11 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.onBackground)
             }
             Text(
                 text = "Control por Voz",
-                color = Color.White,
+                color = colors.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
@@ -98,18 +101,19 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Toca para calibrar el micrófono", color = TextGray, fontSize = 14.sp)
+                Text("Toca para calibrar el micrófono", color = colors.onSurfaceVariant, fontSize = 14.sp)
             }
 
-            // Detección
-            Text("DETECCIÓN", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("APARIENCIA", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Row(
@@ -118,8 +122,41 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Escuchar \"Hey Home\"", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                        Text("Activa el asistente manos libres.", color = TextGray, fontSize = 12.sp)
+                        Text("Modo ${if (isDarkTheme) "oscuro" else "claro"}", color = colors.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("Cambia la apariencia de toda la app.", color = colors.onSurfaceVariant, fontSize = 12.sp)
+                    }
+                    Switch(
+                        checked = isDarkTheme,
+                        onCheckedChange = onThemeChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PrimaryBlue,
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color.DarkGray
+                        )
+                    )
+                }
+            }
+
+            // Detección
+            Text("DETECCIÓN", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Escuchar \"Hey Home\"", color = colors.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("Activa el asistente manos libres.", color = colors.onSurfaceVariant, fontSize = 12.sp)
                     }
                     Switch(
                         checked = wakeWordEnabled,
@@ -137,14 +174,14 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
             Spacer(modifier = Modifier.height(32.dp))
 
             // Voz del Asistente (Simplificado a una sola opción)
-            Text("VOZ DEL ASISTENTE", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text("VOZ DEL ASISTENTE", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(12.dp))
                     .padding(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -154,7 +191,7 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
                             .background(PrimaryBlue)
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        Text("Nova", color = Color.White, fontWeight = FontWeight.Medium)
+                        Text("Nova", color = colors.onBackground, fontWeight = FontWeight.Medium)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
@@ -163,7 +200,7 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Nova es la voz femenina predeterminada, optimizada para una claridad y naturalidad excepcional.",
-                color = TextGray, 
+                color = colors.onSurfaceVariant, 
                 fontSize = 12.sp
             )
 
@@ -175,7 +212,7 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("ACCESOS DIRECTOS", color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("ACCESOS DIRECTOS", color = colors.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text("+ Nuevo", color = PrimaryBlue, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.clickable { })
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -192,12 +229,13 @@ fun VoiceSettingsScreen(onBackClick: () -> Unit) {
 
 @Composable
 fun ShortcutItem(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color) {
+    val colors = LocalAppThemeColors.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark)
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
             .padding(16.dp)
             .clickable { }
     ) {
@@ -218,11 +256,11 @@ fun ShortcutItem(title: String, subtitle: String, icon: androidx.compose.ui.grap
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("\"$title\"", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Text(subtitle, color = TextGray, fontSize = 12.sp)
+                    Text("\"$title\"", color = colors.onBackground, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(subtitle, color = colors.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = TextGray)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.onSurfaceVariant)
         }
     }
 }

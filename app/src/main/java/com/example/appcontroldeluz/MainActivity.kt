@@ -1,15 +1,9 @@
 package com.example.appcontroldeluz
 
-import android.Manifest
-import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,69 +14,54 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.appcontroldeluz.ui.screens.*
 import com.example.appcontroldeluz.ui.theme.*
+import com.example.appcontroldeluz.ui.viewmodel.AppViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AppControldeluzTheme {
-                val context = LocalContext.current
-                val requiredPermissions = remember { requiredRuntimePermissions() }
-                var permissionCheckTrigger by remember { mutableIntStateOf(0) }
-                
-                val permissionsLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions()
-                ) { permissionCheckTrigger++ }
-                var requestedOnce by rememberSaveable { mutableStateOf(false) }
+            val appViewModel: AppViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        return AppViewModel(application = application) as T
+                    }
+                }
+            )
+            val darkTheme by appViewModel.isDarkTheme.collectAsState()
 
-                val allPermissionsGranted = remember(requiredPermissions, permissionCheckTrigger) {
-                    derivedStateOf {
-                        requiredPermissions.all { permission ->
-                            ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        }
+            AppControldeluzTheme(darkTheme = darkTheme) {
+                var currentScreen by remember { mutableStateOf("login") }
+                val isInitializing by appViewModel.isInitializing.collectAsState()
+
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                // Show errors from ViewModel as snackbars
+                val error by appViewModel.voiceState.collectAsState()
+                LaunchedEffect(error.error) {
+                    val err = error.error
+                    if (!err.isNullOrEmpty()) {
+                        snackbarHostState.showSnackbar(err)
                     }
                 }
 
-                LaunchedEffect(allPermissionsGranted.value) {
-                    if (!allPermissionsGranted.value && !requestedOnce) {
-                        requestedOnce = true
-                        permissionsLauncher.launch(requiredPermissions)
-                    }
-                }
-
-                if (!allPermissionsGranted.value) {
-                    PermissionsRequiredScreen(
-                        onRequestPermissions = { permissionsLauncher.launch(requiredPermissions) },
-                        onOpenSettings = {
-                            val intent = Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                "package:${context.packageName}".toUri()
-                            )
-                            context.startActivity(intent)
-                        }
-                    )
-                    return@AppControldeluzTheme
-                }
-
-                var currentScreen by rememberSaveable { mutableStateOf("login") }
-
-                if (currentScreen == "login") {
+                if (isInitializing) {
+                    LoadingScreen()
+                } else if (currentScreen == "login") {
                     LoginScreen(onLoginSuccess = { currentScreen = "dashboard" })
                 } else {
                     Scaffold(
+                        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         bottomBar = {
                             // Ocultar barra en el asistente de voz y en Agregar Luces
                             if (currentScreen != "voice_assistant" && currentScreen != "add_lights") {
@@ -92,15 +71,37 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
-                        containerColor = BackgroundDark
+                        containerColor = MaterialTheme.colorScheme.background
                     ) { innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding)) {
+                            val lights by appViewModel.lights.collectAsState()
+                            val isLoading by appViewModel.isLoading.collectAsState()
+                            val sensorStatus by appViewModel.sensorStatus.collectAsState()
+
                             when (currentScreen) {
-                                "dashboard" -> DashboardScreen(onRoomClick = { currentScreen = "sensor" })
+                                "dashboard" -> DashboardScreen(
+                                    lights = lights,
+                                    isLoading = isLoading,
+                                    onToggleRoom = { room, state -> appViewModel.controlRoom(room, state) },
+                                    onToggleAll = { state -> appViewModel.controlAll(state) },
+                                    onRoomClick = { currentScreen = "sensor" }
+                                )
                                 "schedule" -> ScheduleScreen(onAddClick = { currentScreen = "add_lights" })
-                                "sensor" -> SensorScreen(onBackClick = { currentScreen = "dashboard" })
-                                "voice_settings" -> VoiceSettingsScreen(onBackClick = { currentScreen = "dashboard" })
-                                "voice_assistant" -> VoiceAssistantScreen(onClose = { currentScreen = "dashboard" })
+                                "sensor" -> SensorScreen(
+                                    onBackClick = { currentScreen = "dashboard" },
+                                    sensorStatus = sensorStatus,
+                                    onSensorEnabledChange = appViewModel::setSensorEnabled,
+                                    onRemoveLinkedLight = appViewModel::removeLinkedLightFromSensor
+                                )
+                                "voice_settings" -> VoiceSettingsScreen(
+                                    onBackClick = { currentScreen = "dashboard" },
+                                    isDarkTheme = darkTheme,
+                                    onThemeChange = appViewModel::setDarkTheme
+                                )
+                                "voice_assistant" -> VoiceAssistantScreen(
+                                    viewModel = appViewModel,
+                                    onClose = { currentScreen = "dashboard" }
+                                )
                                 "add_lights" -> AddLightsScreen(onBackClick = { currentScreen = "schedule" })
                             }
                         }
@@ -111,108 +112,56 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private fun requiredRuntimePermissions(): Array<String> {
-    val permissions = mutableListOf(
-        Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    )
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        permissions += Manifest.permission.BLUETOOTH_SCAN
-        permissions += Manifest.permission.BLUETOOTH_CONNECT
-    }
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        permissions += Manifest.permission.NEARBY_WIFI_DEVICES
-    }
-
-    return permissions.toTypedArray()
-}
-
-@Composable
-private fun PermissionsRequiredScreen(
-    onRequestPermissions: () -> Unit,
-    onOpenSettings: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Security,
-            contentDescription = "Permisos requeridos",
-            tint = PrimaryBlue,
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Permisos Requeridos",
-            color = Color.White,
-            fontSize = 24.sp
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Para funcionar correctamente, la app necesita Bluetooth, Wi-Fi y micrófono.",
-            color = TextGray,
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRequestPermissions,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-        ) {
-            Text("Conceder permisos")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(onClick = onOpenSettings) {
-            Text("Abrir ajustes")
-        }
-    }
-}
-
 @Composable
 fun AppBottomBar(currentScreen: String, onNavigate: (String) -> Unit) {
-    Surface(
-        color = Color(0xFF0F1420).copy(alpha = 0.95f),
-        tonalElevation = 8.dp
+    val colors = LocalAppThemeColors.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(top = 18.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .height(80.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            color = colors.surface.copy(alpha = 0.95f),
+            tonalElevation = 8.dp
         ) {
-            BottomNavItem(Icons.Default.Home, "Casa", currentScreen == "dashboard") { onNavigate("dashboard") }
-            BottomNavItem(Icons.Default.Schedule, "Horarios", currentScreen == "schedule") { onNavigate("schedule") }
-            
-            // Botón central de voz (Foto 2, 3 y 4)
-            Box(
+            Row(
                 modifier = Modifier
-                    .offset(y = (-20).dp)
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryBlue)
-                    .clickable { onNavigate("voice_assistant") },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(92.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Rounded.Mic, contentDescription = "Voz", tint = Color.White, modifier = Modifier.size(32.dp))
-            }
+                BottomNavItem(Icons.Default.Home, "Casa", currentScreen == "dashboard") { onNavigate("dashboard") }
+                BottomNavItem(Icons.Default.Schedule, "Horarios", currentScreen == "schedule") { onNavigate("schedule") }
 
-            BottomNavItem(Icons.Default.Sensors, "Sensor", currentScreen == "sensor") { onNavigate("sensor") }
-            BottomNavItem(Icons.Default.Settings, "Ajustes", currentScreen == "voice_settings") { onNavigate("voice_settings") }
+                Spacer(modifier = Modifier.size(72.dp))
+
+                BottomNavItem(Icons.Default.Sensors, "Sensor", currentScreen == "sensor") { onNavigate("sensor") }
+                BottomNavItem(Icons.Default.Settings, "Ajustes", currentScreen == "voice_settings") { onNavigate("voice_settings") }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-4).dp)
+                .size(76.dp)
+                .clip(CircleShape)
+                .background(PrimaryBlue)
+                .clickable { onNavigate("voice_assistant") },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Rounded.Mic, contentDescription = "Voz", tint = Color.White, modifier = Modifier.size(36.dp))
         }
     }
 }
 
 @Composable
 fun BottomNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, isSelected: Boolean, onClick: () -> Unit) {
+    val colors = LocalAppThemeColors.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -223,9 +172,9 @@ fun BottomNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: 
         Icon(
             icon, 
             contentDescription = label, 
-            tint = if (isSelected) PrimaryBlue else TextGray,
+            tint = if (isSelected) PrimaryBlue else colors.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
-        Text(label, color = if (isSelected) PrimaryBlue else TextGray, fontSize = 10.sp)
+        Text(label, color = if (isSelected) PrimaryBlue else colors.onSurfaceVariant, fontSize = 10.sp)
     }
 }
