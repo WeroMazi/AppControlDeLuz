@@ -26,6 +26,12 @@ data class VoiceUiState(
     val error: String? = null
 )
 
+data class Esp32CommandUiState(
+    val sending: Boolean = false,
+    val message: String = "",
+    val error: String? = null
+)
+
 class AppViewModel(
     application: Application,
     private val repository: LightsRepository = LightsRepository(ApiClient.service),
@@ -55,6 +61,26 @@ class AppViewModel(
 
     private val _voiceState = MutableStateFlow(VoiceUiState())
     val voiceState: StateFlow<VoiceUiState> = _voiceState.asStateFlow()
+
+    private val _esp32CommandState = MutableStateFlow(Esp32CommandUiState())
+    val esp32CommandState: StateFlow<Esp32CommandUiState> = _esp32CommandState.asStateFlow()
+
+    private val defaultLedLabels = mapOf(
+        1 to "Casa",
+        2 to "Patio frontal",
+        3 to "Patio trasero",
+        4 to "Cocina",
+        5 to "Dormitorio",
+        6 to "Baño",
+        7 to "Jardín",
+        8 to "Garage"
+    )
+
+    private val _ledStates = MutableStateFlow((1..8).associateWith { false })
+    val ledStates: StateFlow<Map<Int, Boolean>> = _ledStates.asStateFlow()
+
+    private val _ledLabels = MutableStateFlow(loadLedLabels())
+    val ledLabels: StateFlow<Map<Int, String>> = _ledLabels.asStateFlow()
 
     private val _isDarkTheme = MutableStateFlow(settingsStore.getBoolean("dark_theme", true))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
@@ -207,6 +233,85 @@ class AppViewModel(
         }
     }
 
+    fun sendEsp32LightCommand(light: String, action: String) {
+        _esp32CommandState.value = Esp32CommandUiState(sending = true)
+
+        viewModelScope.launch {
+            repository.sendEsp32LightCommand(light, action)
+                .onSuccess { message ->
+                    _esp32CommandState.value = Esp32CommandUiState(message = message)
+                }
+                .onFailure { error ->
+                    _esp32CommandState.value = Esp32CommandUiState(
+                        error = error.message ?: "No se pudo enviar el comando al ESP32"
+                    )
+                    AppTelemetry.recordException(error, "sendEsp32LightCommand failed light=$light action=$action")
+                }
+        }
+    }
+
+    fun clearEsp32Message() {
+        _esp32CommandState.value = Esp32CommandUiState()
+    }
+
+    fun controlLed(ledNumber: Int, state: Boolean) {
+        if (ledNumber !in 1..8) {
+            _esp32CommandState.value = Esp32CommandUiState(error = "LED invalido. Usa un numero del 1 al 8.")
+            return
+        }
+
+        val previousStates = _ledStates.value
+        _ledStates.value = previousStates.toMutableMap().apply { put(ledNumber, state) }
+        _esp32CommandState.value = Esp32CommandUiState(sending = true)
+
+        viewModelScope.launch {
+            repository.sendEsp32LightCommand(ledNumber.toString(), if (state) "on" else "off")
+                .onSuccess { message ->
+                    _esp32CommandState.value = Esp32CommandUiState(message = message)
+                }
+                .onFailure { error ->
+                    _ledStates.value = previousStates
+                    _esp32CommandState.value = Esp32CommandUiState(
+                        error = error.message ?: "No se pudo enviar el comando al ESP32"
+                    )
+                    AppTelemetry.recordException(error, "controlLed failed led=$ledNumber state=$state")
+                }
+        }
+    }
+
+    fun controlAllLeds(state: Boolean) {
+        val previousStates = _ledStates.value
+        _ledStates.value = (1..8).associateWith { state }
+        _esp32CommandState.value = Esp32CommandUiState(sending = true)
+
+        viewModelScope.launch {
+            repository.sendEsp32LightCommand("all", if (state) "on" else "off")
+                .onSuccess { message ->
+                    _esp32CommandState.value = Esp32CommandUiState(message = message)
+                }
+                .onFailure { error ->
+                    _ledStates.value = previousStates
+                    _esp32CommandState.value = Esp32CommandUiState(
+                        error = error.message ?: "No se pudo enviar el comando al ESP32"
+                    )
+                    AppTelemetry.recordException(error, "controlAllLeds failed state=$state")
+                }
+        }
+    }
+
+    fun renameLed(ledNumber: Int, label: String) {
+        if (ledNumber !in 1..8) return
+        val cleanLabel = label.trim().ifBlank { "LED $ledNumber" }
+        _ledLabels.value = _ledLabels.value.toMutableMap().apply { put(ledNumber, cleanLabel) }
+        cacheStore.putString("led_label_$ledNumber", cleanLabel)
+    }
+
+    private fun loadLedLabels(): Map<Int, String> {
+        return (1..8).associateWith { ledNumber ->
+            cacheStore.getString("led_label_$ledNumber", defaultLedLabels[ledNumber] ?: "LED $ledNumber")
+        }
+    }
+
     fun onVoiceRecordingStarted() {
         _voiceState.value = VoiceUiState(listening = true, processing = false)
     }
@@ -294,6 +399,8 @@ interface LightCacheStore {
     fun putBoolean(key: String, value: Boolean)
     fun getInt(key: String, defaultValue: Int): Int
     fun putInt(key: String, value: Int)
+    fun getString(key: String, defaultValue: String): String
+    fun putString(key: String, value: String)
 }
 
 class AndroidLightCacheStore(application: Application) : LightCacheStore {
@@ -312,6 +419,12 @@ class AndroidLightCacheStore(application: Application) : LightCacheStore {
     override fun putInt(key: String, value: Int) {
         prefs.edit().putInt(key, value).apply()
     }
+
+    override fun getString(key: String, defaultValue: String): String = prefs.getString(key, defaultValue) ?: defaultValue
+
+    override fun putString(key: String, value: String) {
+        prefs.edit().putString(key, value).apply()
+    }
 }
 
 class MemoryLightCacheStore : LightCacheStore {
@@ -328,6 +441,12 @@ class MemoryLightCacheStore : LightCacheStore {
     override fun getInt(key: String, defaultValue: Int): Int = values[key] as? Int ?: defaultValue
 
     override fun putInt(key: String, value: Int) {
+        values[key] = value
+    }
+
+    override fun getString(key: String, defaultValue: String): String = values[key] as? String ?: defaultValue
+
+    override fun putString(key: String, value: String) {
         values[key] = value
     }
 }

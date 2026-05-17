@@ -2,9 +2,11 @@ package com.example.appcontroldeluz
 
 import android.app.Application
 import com.example.appcontroldeluz.data.model.HealthResponse
+import com.example.appcontroldeluz.data.model.Esp32CommandResponse
 import com.example.appcontroldeluz.data.model.LightControlRequest
 import com.example.appcontroldeluz.data.model.LightControlResponse
 import com.example.appcontroldeluz.data.model.LightsResponse
+import com.example.appcontroldeluz.data.model.SensorStatus
 import com.example.appcontroldeluz.data.model.VoiceCommandResponse
 import com.example.appcontroldeluz.data.remote.VoiceApiService
 import com.example.appcontroldeluz.data.repository.LightsRepository
@@ -28,7 +30,7 @@ class AppViewModelTest {
     fun controlRoom_rollsBack_whenApiFails() = runTest {
         val repository = LightsRepository(FailingControlApi())
         val app = Application()
-        val vm = AppViewModel(app, repository, MemoryLightCacheStore())
+        val vm = AppViewModel(app, repository, cacheStore = MemoryLightCacheStore())
 
         advanceUntilIdle() // init
 
@@ -45,7 +47,7 @@ class AppViewModelTest {
     fun controlAll_setsAllLights_whenApiSucceeds() = runTest {
         val repository = LightsRepository(SuccessApi())
         val app = Application()
-        val vm = AppViewModel(app, repository, MemoryLightCacheStore())
+        val vm = AppViewModel(app, repository, cacheStore = MemoryLightCacheStore())
 
         advanceUntilIdle() // init
         vm.controlAll(true)
@@ -82,9 +84,21 @@ private class SuccessApi : VoiceApiService {
         return LightControlResponse("success", "ok", map)
     }
 
+    override suspend fun sendEsp32LightCommand(light: String, action: String): Esp32CommandResponse {
+        return Esp32CommandResponse("success", "ok", "esp32", "$light:$action")
+    }
+
     override suspend fun processVoiceCommand(file: MultipartBody.Part): VoiceCommandResponse {
         return VoiceCommandResponse("success", "ok", "", 0.0, false, null, null)
     }
+
+    override suspend fun getSensorStatus(): SensorStatus = SensorStatus()
+
+    override suspend fun setSensorEnabled(payload: Map<String, Boolean>): SensorStatus = SensorStatus(
+        enabled = payload["enabled"] ?: true
+    )
+
+    override suspend fun unlinkLight(payload: Map<String, String>): SensorStatus = SensorStatus()
 }
 
 private class FailingControlApi : VoiceApiService {
@@ -106,7 +120,19 @@ private class FailingControlApi : VoiceApiService {
         throw IllegalStateException("backend error")
     }
 
+    override suspend fun sendEsp32LightCommand(light: String, action: String): Esp32CommandResponse {
+        return Esp32CommandResponse("success", "ok", "esp32", "$light:$action")
+    }
+
     override suspend fun processVoiceCommand(file: MultipartBody.Part): VoiceCommandResponse {
         return VoiceCommandResponse("success", "ok", "", 0.0, false, null, null)
     }
+
+    override suspend fun getSensorStatus(): SensorStatus = SensorStatus()
+
+    override suspend fun setSensorEnabled(payload: Map<String, Boolean>): SensorStatus = SensorStatus(
+        enabled = payload["enabled"] ?: true
+    )
+
+    override suspend fun unlinkLight(payload: Map<String, String>): SensorStatus = SensorStatus()
 }

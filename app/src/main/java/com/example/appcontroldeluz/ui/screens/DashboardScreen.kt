@@ -19,26 +19,29 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Bathtub
-import androidx.compose.material.icons.filled.Bed
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Weekend
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,15 +50,25 @@ import com.example.appcontroldeluz.ui.theme.PrimaryBlue
 
 @Composable
 fun DashboardScreen(
-    lights: Map<String, Boolean>,
+    ledStates: Map<Int, Boolean>,
+    ledLabels: Map<Int, String>,
     isLoading: Boolean,
-    onToggleRoom: (String, Boolean) -> Unit,
+    isSendingCommand: Boolean,
+    onToggleLed: (Int, Boolean) -> Unit,
     onToggleAll: (Boolean) -> Unit,
-    onRoomClick: () -> Unit
+    onRenameLed: (Int, String) -> Unit
 ) {
     val colors = LocalAppThemeColors.current
-    val rooms = remember(lights) { mapRooms(lights) }
-    val allLightsOff = rooms.all { !it.isActive }
+    val leds = remember(ledStates, ledLabels) {
+        (1..8).map { ledNumber ->
+            LedItem(
+                number = ledNumber,
+                name = ledLabels[ledNumber] ?: "LED $ledNumber",
+                isActive = ledStates[ledNumber] == true
+            )
+        }
+    }
+    val allLightsOff = leds.all { !it.isActive }
 
     Column(
         modifier = Modifier
@@ -103,7 +116,7 @@ fun DashboardScreen(
                     if (allLightsOff) PrimaryBlue else colors.border,
                     RoundedCornerShape(20.dp)
                 )
-                .clickable { onToggleAll(allLightsOff) }
+                .clickable(enabled = !isSendingCommand) { onToggleAll(allLightsOff) }
                 .padding(20.dp)
         ) {
             Row(
@@ -112,7 +125,7 @@ fun DashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Ahorro de Energía", color = colors.onSurfaceVariant, fontSize = 14.sp)
+                    Text("Control General", color = colors.onSurfaceVariant, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         if (allLightsOff) "Encender Todas las Luces" else "Apagar Todas las Luces",
@@ -124,7 +137,7 @@ fun DashboardScreen(
 
                 Icon(
                     Icons.Rounded.PowerSettingsNew,
-                    contentDescription = "Apagar todo",
+                    contentDescription = "Controlar todo",
                     tint = if (allLightsOff) colors.onSurfaceVariant else colors.onBackground,
                     modifier = Modifier.size(30.dp)
                 )
@@ -140,20 +153,18 @@ fun DashboardScreen(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            items(rooms.size) { index ->
-                val room = rooms[index]
-                RoomCard(
-                    title = room.name,
-                    subtitle = if (room.isActive) "Encendida" else "Todo apagado",
-                    icon = room.icon,
-                    isActive = room.isActive,
-                    onToggle = { onToggleRoom(room.backendName, it) },
-                    onClick = onRoomClick
+            items(leds.size) { index ->
+                val led = leds[index]
+                LedCard(
+                    led = led,
+                    commandEnabled = !isSendingCommand,
+                    onToggle = { onToggleLed(led.number, it) },
+                    onRename = { onRenameLed(led.number, it) }
                 )
             }
         }
 
-        if (isLoading) {
+        if (isLoading || isSendingCommand) {
             LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,48 +176,34 @@ fun DashboardScreen(
     }
 }
 
-data class RoomItem(
-    val backendName: String,
+data class LedItem(
+    val number: Int,
     val name: String,
-    val icon: ImageVector,
     val isActive: Boolean
 )
 
-private fun mapRooms(lights: Map<String, Boolean>): List<RoomItem> {
-    return listOf(
-        RoomItem("sala", "Sala", Icons.Default.Weekend, lights["sala"] == true),
-        RoomItem("cocina", "Cocina", Icons.Default.Restaurant, lights["cocina"] == true),
-        RoomItem("dormitorio", "Dormitorio", Icons.Default.Bed, lights["dormitorio"] == true),
-        RoomItem("baño", "Baño", Icons.Default.Bathtub, lights["baño"] == true),
-        RoomItem("jardin", "Jardín", Icons.AutoMirrored.Filled.DirectionsWalk, lights["jardin"] == true),
-        RoomItem("garage", "Garage", Icons.Default.DirectionsCar, lights["garage"] == true)
-    )
-}
-
 @Composable
-fun RoomCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    isActive: Boolean,
+fun LedCard(
+    led: LedItem,
+    commandEnabled: Boolean,
     onToggle: (Boolean) -> Unit,
-    onClick: () -> Unit
+    onRename: (String) -> Unit
 ) {
     val colors = LocalAppThemeColors.current
-    val bgColor = if (isActive) colors.surface else colors.surfaceVariant.copy(alpha = 0.8f)
-    val iconBgColor = if (isActive) PrimaryBlue.copy(alpha = 0.2f) else colors.subtleContainer
-    val iconColor = if (isActive) PrimaryBlue else colors.onSurfaceVariant
-    val subtitleColor = if (isActive) PrimaryBlue else colors.onSurfaceVariant
+    val bgColor = if (led.isActive) colors.surface else colors.surfaceVariant.copy(alpha = 0.8f)
+    val iconBgColor = if (led.isActive) PrimaryBlue.copy(alpha = 0.2f) else colors.subtleContainer
+    val iconColor = if (led.isActive) PrimaryBlue else colors.onSurfaceVariant
+    val subtitleColor = if (led.isActive) PrimaryBlue else colors.onSurfaceVariant
+    var renameDialogOpen by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
+            .height(172.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(bgColor)
             .border(1.dp, colors.border, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(16.dp),
+            .padding(14.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
@@ -221,11 +218,12 @@ fun RoomCard(
                     .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = title, tint = iconColor)
+                Icon(Icons.Default.Lightbulb, contentDescription = "LED ${led.number}", tint = iconColor)
             }
 
             Switch(
-                checked = isActive,
+                checked = led.isActive,
+                enabled = commandEnabled,
                 onCheckedChange = { onToggle(it) },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
@@ -237,8 +235,70 @@ fun RoomCard(
         }
 
         Column {
-            Text(title, color = colors.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(subtitle, color = subtitleColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = led.name,
+                    color = colors.onBackground,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { renameDialogOpen = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar nombre", tint = colors.onSurfaceVariant)
+                }
+            }
+            Text(
+                text = "LED ${led.number} • ${if (led.isActive) "Encendida" else "Todo apagado"}",
+                color = subtitleColor,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
+
+    if (renameDialogOpen) {
+        RenameLedDialog(
+            ledNumber = led.number,
+            initialName = led.name,
+            onDismiss = { renameDialogOpen = false },
+            onSave = {
+                onRename(it)
+                renameDialogOpen = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun RenameLedDialog(
+    ledNumber: Int,
+    initialName: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var name by remember(initialName) { mutableStateOf(initialName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Asignar LED $ledNumber") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                label = { Text("Ubicación") },
+                placeholder = { Text("Ej. Patio frontal") }
+            )
+        },
+        confirmButton = {
+            Button(onClick = { onSave(name) }) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }

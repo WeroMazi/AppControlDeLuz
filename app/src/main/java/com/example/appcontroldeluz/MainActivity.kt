@@ -54,6 +54,13 @@ class MainActivity : ComponentActivity() {
                         snackbarHostState.showSnackbar(err)
                     }
                 }
+                val esp32CommandState by appViewModel.esp32CommandState.collectAsState()
+                LaunchedEffect(esp32CommandState.message, esp32CommandState.error) {
+                    val message = esp32CommandState.error ?: esp32CommandState.message
+                    if (message.isNotBlank()) {
+                        snackbarHostState.showSnackbar(message)
+                    }
+                }
 
                 if (isInitializing) {
                     LoadingScreen()
@@ -74,17 +81,20 @@ class MainActivity : ComponentActivity() {
                         containerColor = MaterialTheme.colorScheme.background
                     ) { innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding)) {
-                            val lights by appViewModel.lights.collectAsState()
                             val isLoading by appViewModel.isLoading.collectAsState()
                             val sensorStatus by appViewModel.sensorStatus.collectAsState()
+                            val ledStates by appViewModel.ledStates.collectAsState()
+                            val ledLabels by appViewModel.ledLabels.collectAsState()
 
                             when (currentScreen) {
                                 "dashboard" -> DashboardScreen(
-                                    lights = lights,
+                                    ledStates = ledStates,
+                                    ledLabels = ledLabels,
                                     isLoading = isLoading,
-                                    onToggleRoom = { room, state -> appViewModel.controlRoom(room, state) },
-                                    onToggleAll = { state -> appViewModel.controlAll(state) },
-                                    onRoomClick = { currentScreen = "sensor" }
+                                    isSendingCommand = esp32CommandState.sending,
+                                    onToggleLed = appViewModel::controlLed,
+                                    onToggleAll = appViewModel::controlAllLeds,
+                                    onRenameLed = appViewModel::renameLed
                                 )
                                 "schedule" -> ScheduleScreen(onAddClick = { currentScreen = "add_lights" })
                                 "sensor" -> SensorScreen(

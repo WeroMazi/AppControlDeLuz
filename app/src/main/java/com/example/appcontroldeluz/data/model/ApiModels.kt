@@ -18,6 +18,13 @@ data class LightControlResponse(
     val lights: Map<String, Boolean>
 )
 
+data class Esp32CommandResponse(
+    val status: String,
+    val message: String,
+    val deviceId: String?,
+    val command: String?
+)
+
 data class ParsedVoiceCommand(
     val action: String?,
     val room: String?,

@@ -1,9 +1,11 @@
 package com.example.appcontroldeluz
 
 import com.example.appcontroldeluz.data.model.HealthResponse
+import com.example.appcontroldeluz.data.model.Esp32CommandResponse
 import com.example.appcontroldeluz.data.model.LightControlRequest
 import com.example.appcontroldeluz.data.model.LightControlResponse
 import com.example.appcontroldeluz.data.model.LightsResponse
+import com.example.appcontroldeluz.data.model.SensorStatus
 import com.example.appcontroldeluz.data.model.VoiceCommandResponse
 import com.example.appcontroldeluz.data.remote.VoiceApiService
 import com.example.appcontroldeluz.data.repository.LightsRepository
@@ -52,7 +54,19 @@ private class FakeVoiceApi : VoiceApiService {
         return LightControlResponse("success", "ok", emptyMap())
     }
 
+    override suspend fun sendEsp32LightCommand(light: String, action: String): Esp32CommandResponse {
+        return Esp32CommandResponse("success", "ok", "esp32", "$light:$action")
+    }
+
     override suspend fun processVoiceCommand(file: MultipartBody.Part): VoiceCommandResponse {
         return VoiceCommandResponse("success", "ok", "", 0.0, false, null, null)
     }
+
+    override suspend fun getSensorStatus(): SensorStatus = SensorStatus()
+
+    override suspend fun setSensorEnabled(payload: Map<String, Boolean>): SensorStatus = SensorStatus(
+        enabled = payload["enabled"] ?: true
+    )
+
+    override suspend fun unlinkLight(payload: Map<String, String>): SensorStatus = SensorStatus()
 }

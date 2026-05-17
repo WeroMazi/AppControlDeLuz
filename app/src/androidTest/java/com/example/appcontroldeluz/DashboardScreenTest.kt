@@ -13,26 +13,25 @@ class DashboardScreenTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun dashboard_rendersMainRooms() {
+    fun dashboard_rendersLedLocations() {
         composeRule.setContent {
             DashboardScreen(
-                lights = mapOf(
-                    "sala" to true,
-                    "cocina" to false,
-                    "dormitorio" to true,
-                    "baño" to false,
-                    "jardin" to true,
-                    "garage" to false
+                ledStates = (1..8).associateWith { it == 1 },
+                ledLabels = mapOf(
+                    1 to "Casa",
+                    2 to "Patio frontal",
+                    3 to "Patio trasero"
                 ),
                 isLoading = false,
-                onToggleRoom = { _, _ -> },
+                isSendingCommand = false,
+                onToggleLed = { _, _ -> },
                 onToggleAll = {},
-                onRoomClick = {}
+                onRenameLed = { _, _ -> }
             )
         }
 
-        composeRule.onNodeWithText("Sala").assertExists()
-        composeRule.onNodeWithText("Cocina").assertExists()
-        composeRule.onNodeWithText("Dormitorio").assertExists()
+        composeRule.onNodeWithText("Casa").assertExists()
+        composeRule.onNodeWithText("Patio frontal").assertExists()
+        composeRule.onNodeWithText("Patio trasero").assertExists()
     }
 }

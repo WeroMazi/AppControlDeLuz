@@ -22,6 +22,23 @@ class LightsRepository(private val api: HomeAutomationApiService) {
         api.controlLight(LightControlRequest(room = room, state = state)).lights
     }
 
+    suspend fun sendEsp32LightCommand(light: String, action: String): Result<String> = runCatching {
+        val normalizedLight = light.trim().lowercase()
+        val normalizedAction = action.trim().lowercase()
+
+        require(normalizedLight == "all" || normalizedLight.toIntOrNull() in 1..8) {
+            "LED invalido. Usa un numero del 1 al 8, o 'all'."
+        }
+        require(normalizedAction == "on" || normalizedAction == "off") {
+            "Accion invalida. Solo se permite 'on' u 'off'."
+        }
+
+        val response = api.sendEsp32LightCommand(normalizedLight, normalizedAction)
+        response.message.ifBlank {
+            "Comando ${response.command ?: "$normalizedLight:$normalizedAction"} enviado"
+        }
+    }
+
     suspend fun processVoiceCommand(audioFile: File): Result<VoiceCommandResponse> = runCatching {
         val requestBody = audioFile.asRequestBody("audio/wav".toMediaType())
         val part = MultipartBody.Part.createFormData("file", audioFile.name, requestBody)
