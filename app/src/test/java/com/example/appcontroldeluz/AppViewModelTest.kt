@@ -1,6 +1,7 @@
 package com.example.appcontroldeluz
 
 import android.app.Application
+import androidx.test.core.app.ApplicationProvider
 import com.example.appcontroldeluz.data.model.HealthResponse
 import com.example.appcontroldeluz.data.model.Esp32CommandResponse
 import com.example.appcontroldeluz.data.model.LightControlRequest
@@ -19,8 +20,11 @@ import okhttp3.MultipartBody
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class AppViewModelTest {
 
     @get:Rule
@@ -29,7 +33,7 @@ class AppViewModelTest {
     @Test
     fun controlRoom_rollsBack_whenApiFails() = runTest {
         val repository = LightsRepository(FailingControlApi())
-        val app = Application()
+        val app = ApplicationProvider.getApplicationContext<Application>()
         val vm = AppViewModel(app, repository, cacheStore = MemoryLightCacheStore())
 
         advanceUntilIdle() // init
@@ -46,7 +50,7 @@ class AppViewModelTest {
     @Test
     fun controlAll_setsAllLights_whenApiSucceeds() = runTest {
         val repository = LightsRepository(SuccessApi())
-        val app = Application()
+        val app = ApplicationProvider.getApplicationContext<Application>()
         val vm = AppViewModel(app, repository, cacheStore = MemoryLightCacheStore())
 
         advanceUntilIdle() // init
